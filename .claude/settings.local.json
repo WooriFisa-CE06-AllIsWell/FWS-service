@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip --version)",
+      "Bash(py --version)",
+      "Bash(where python:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

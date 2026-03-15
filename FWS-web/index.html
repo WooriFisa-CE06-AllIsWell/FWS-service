@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FWS — Four Guys Web Service</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css"/>
+  <script>(function(){if(localStorage.getItem('fws-theme')==='dark')document.documentElement.classList.add('dark');})()</script>
+</head>
+<body>
+  <div class="scanline"></div>
+  <div class="noise"></div>
+
+  <div class="container main-container">
+
+    <!-- 상단 상태 표시줄 -->
+    <div class="status-bar">
+      <span class="status-dot blink"></span>
+      <span class="mono">SYSTEM ONLINE</span>
+      <span class="spacer"></span>
+      <span class="mono" id="clock"></span>
+      <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙</button>
+    </div>
+
+    <!-- 로고 -->
+    <div class="hero">
+      <div class="logo-wrap">
+        <div class="logo-tag mono">[ FOUR GUYS WEB SERVICE ]</div>
+        <h1 class="logo-text">FWS</h1>
+        <p class="logo-sub">가상머신 온디맨드 프로비저닝 플랫폼</p>
+      </div>
+
+      <div class="grid-lines" aria-hidden="true">
+        <div></div><div></div><div></div><div></div><div></div>
+      </div>
+    </div>
+
+    <!-- 메인 버튼 두 개 -->
+    <div class="main-actions">
+
+      <a href="provision.html" class="action-card">
+        <div class="action-icon">⬡</div>
+        <div class="action-content">
+          <div class="action-title">생성 / 반납</div>
+          <div class="action-desc">VM 신규 할당 및 자원 반납</div>
+          <div class="action-detail mono">
+            Ubuntu · Rocky Linux<br/>
+            CPU · MEM · STORAGE 선택
+          </div>
+        </div>
+        <div class="action-arrow">→</div>
+      </a>
+
+      <a href="#" class="action-card accent" id="btn-connect">
+        <div class="action-icon">◈</div>
+        <div class="action-content">
+          <div class="action-title">VM 접속</div>
+          <div class="action-desc">Guacamole 웹 터미널로 바로 접속</div>
+          <div class="action-detail mono">
+            SSH · 브라우저 기반<br/>
+            별도 클라이언트 불필요
+          </div>
+        </div>
+        <div class="action-arrow">→</div>
+      </a>
+
+    </div>
+
+    <!-- 하단 -->
+    <div class="footer-bar mono">
+      <span>FISA 6기 · four guys</span>
+      <span class="spacer"></span>
+      <span>172.18.0.0/20</span>
+    </div>
+
+  </div>
+
+  <!-- Guacamole 접속 모달 -->
+  <div class="modal-overlay" id="connect-modal">
+    <div class="modal-box">
+      <div class="modal-title mono">[ VM 접속 ]</div>
+      <p class="modal-desc">할당받은 VM 이름을 입력하세요</p>
+      <input class="input-field" type="text" id="vm-name-connect" placeholder="예) fws-vm-001"/>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal()">취소</button>
+        <button class="btn-primary" onclick="connectGuacamole()">접속하기</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
