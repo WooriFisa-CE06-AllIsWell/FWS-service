@@ -10,7 +10,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./pgdata:/var/lib/postgresql/data   # 로컬 저장 (NFS 마운트 시 /mnt/nfs/pgdata 로 변경)
+      - /nfs/shared-log/pgdata:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
   log-server:

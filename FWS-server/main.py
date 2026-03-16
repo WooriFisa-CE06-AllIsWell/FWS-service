@@ -1,4 +1,7 @@
 import logging
+import logging.handlers
+import json
+import urllib.request
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,12 +9,44 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from routers import vm, resources
 
+
+class LogServerHandler(logging.Handler):
+    """LOG_SERVER_URL 이 설정된 경우 로그를 HTTP POST 로 전송한다."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            parts = record.getMessage().split("|")
+            event = parts[0].strip() if len(parts) > 0 else ""
+            payload = json.dumps({
+                "level": record.levelname,
+                "module": record.name,
+                "event": event,
+                "message": record.getMessage(),
+                "vm_name": "",
+                "server_ip": "",
+            }).encode()
+            req = urllib.request.Request(
+                f"{settings.LOG_SERVER_URL}/logs",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            urllib.request.urlopen(req, timeout=2)
+        except Exception:
+            pass  # 로그 서버 장애가 서비스에 영향을 주지 않도록 무시
+
+
 # ── 로깅 설정 ────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)-5s | %(name)s | %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
+
+if settings.LOG_SERVER_URL:
+    _log_handler = LogServerHandler()
+    _log_handler.setLevel(logging.INFO)
+    logging.getLogger().addHandler(_log_handler)
 
 app = FastAPI(
     title="FWS Backend",
