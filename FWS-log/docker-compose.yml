@@ -1,0 +1,25 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: fws-log-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: fws_logs
+      POSTGRES_USER: fws
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data   # 로컬 저장 (NFS 마운트 시 /mnt/nfs/pgdata 로 변경)
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  log-server:
+    build: .
+    container_name: fws-log-server
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    env_file:
+      - .env
+    depends_on:
+      - postgres
