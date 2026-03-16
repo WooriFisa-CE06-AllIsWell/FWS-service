@@ -206,12 +206,21 @@ class VCenterClient:
     # ── 자원 현황 (REST API) ─────────────────────────────────────────────────
 
     def get_resources(self) -> dict:
+        # 호스트 하드웨어 정보는 pyVmomi로 조회
+        # (REST /api/vcenter/host 목록에 cpu_count/memory_size_MiB 미포함 — vSphere 7.0.3)
+        si = _get_si()
+        try:
+            content = si.RetrieveContent()
+            cluster = _get_obj(content, [vim.ClusterComputeResource], settings.CLUSTER)
+            cpu_total = sum(h.summary.hardware.numCpuCores for h in cluster.host)
+            mem_total_mib = sum(
+                h.summary.hardware.memorySize // (1024 * 1024) for h in cluster.host
+            )
+        finally:
+            Disconnect(si)
+
+        # VM 사용량 및 스토리지는 REST API로 조회
         self.login()
-
-        hosts = self._get("/api/vcenter/host")
-        cpu_total = sum(h.get("cpu_count", 0) for h in hosts)
-        mem_total_mib = sum(h.get("memory_size_MiB", 0) for h in hosts)
-
         all_vms = self._get("/api/vcenter/vm")
         powered_on_vms = [v for v in all_vms if v.get("power_state") == "POWERED_ON"]
         cpu_used = sum(v.get("cpu_count", 0) for v in powered_on_vms)
