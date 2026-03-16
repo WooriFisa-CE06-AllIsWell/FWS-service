@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, field_validator
 
@@ -6,6 +8,7 @@ from services.vcenter import VCenterClient, get_mock_vm
 from services.guacamole import GuacamoleClient
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 # ── 요청/응답 스키마 ─────────────────────────────────────────────────────────
@@ -62,23 +65,28 @@ def create_vm(req: VMCreateRequest):
 
     ※ VM 전원 ON 후 IP 할당까지 최대 5분 소요됩니다.
     """
+    logger.info(f"vm_create_request | os={req.os} cpu={req.cpu} mem={req.memory}GB storage={req.storage}GB")
+
     if settings.MOCK_MODE:
         mock = get_mock_vm(req.os, req.cpu, req.memory, req.storage)
-        # MOCK: Guacamole URL은 기본 홈으로 설정
         mock["guacamole_url"] = f"{settings.GUACAMOLE_URL.rstrip('/')}/guacamole/"
+        logger.info(f"vm_create_done (MOCK) | vm={mock['vm_name']} ip={mock['ip']}")
         return mock
 
     # vCenter에서 VM 생성
     try:
         vcenter = VCenterClient()
         vm_info = vcenter.create_vm(req.os, req.cpu, req.memory, req.storage)
+        logger.info(f"vm_create_done | vm={vm_info['vm_name']} ip={vm_info['ip']} os={vm_info['os']}")
     except TimeoutError as e:
+        logger.error(f"vm_create_timeout | os={req.os} cpu={req.cpu} error={e}")
         raise HTTPException(status_code=504, detail=str(e))
     except Exception as e:
+        logger.error(f"vm_create_failed | os={req.os} cpu={req.cpu} error={e}")
         raise HTTPException(status_code=502, detail=f"VM 생성 실패: {str(e)}")
 
     # Guacamole에 SSH 연결 자동 등록 후 직접 접속 URL 생성
-    guacamole_url = f"{settings.GUACAMOLE_URL.rstrip('/')}/guacamole/"  # 기본값
+    guacamole_url = f"{settings.GUACAMOLE_URL.rstrip('/')}/guacamole/"
     try:
         guac = GuacamoleClient()
         conn_id = guac.create_ssh_connection(
@@ -87,10 +95,10 @@ def create_vm(req: VMCreateRequest):
             ssh_user=vm_info["ssh_user"],
         )
         if conn_id:
-            # 해당 VM 연결로 바로 이동하는 URL 생성
             guacamole_url = guac.build_client_url(conn_id)
+            logger.info(f"guacamole_registered | vm={vm_info['vm_name']} conn_id={conn_id}")
     except Exception as e:
-        print(f"[WARN] Guacamole 연결 등록 실패 (수동으로 추가하세요): {e}")
+        logger.warning(f"guacamole_register_failed | vm={vm_info['vm_name']} error={e}")
 
     vm_info["guacamole_url"] = guacamole_url
     return vm_info
@@ -127,23 +135,30 @@ def delete_vm(req: VMDeleteRequest):
     if not req.vm_name:
         raise HTTPException(status_code=400, detail="vm_name이 비어있습니다")
 
+    logger.info(f"vm_delete_request | vm={req.vm_name}")
+
     if settings.MOCK_MODE:
+        logger.info(f"vm_delete_done (MOCK) | vm={req.vm_name}")
         return {"success": True, "message": f"{req.vm_name} 반납 완료 (MOCK)"}
 
     # vCenter에서 VM 삭제
     try:
         vcenter = VCenterClient()
         vcenter.delete_vm(req.vm_name)
+        logger.info(f"vm_delete_done | vm={req.vm_name}")
     except ValueError as e:
+        logger.error(f"vm_delete_not_found | vm={req.vm_name} error={e}")
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
+        logger.error(f"vm_delete_failed | vm={req.vm_name} error={e}")
         raise HTTPException(status_code=502, detail=f"VM 삭제 실패: {str(e)}")
 
     # Guacamole에서 연결 제거
     try:
         guac = GuacamoleClient()
         guac.delete_connection_by_name(req.vm_name)
+        logger.info(f"guacamole_deleted | vm={req.vm_name}")
     except Exception as e:
-        print(f"[WARN] Guacamole 연결 삭제 실패: {e}")
+        logger.warning(f"guacamole_delete_failed | vm={req.vm_name} error={e}")
 
     return {"success": True, "message": f"{req.vm_name} 반납 완료"}
