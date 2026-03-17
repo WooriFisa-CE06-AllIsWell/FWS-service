@@ -32,6 +32,9 @@ class Settings:
     # MOCK_MODE=true 이면 vCenter 없이도 더미 데이터로 동작
     MOCK_MODE: bool = os.getenv("MOCK_MODE", "true").lower() == "true"
 
+    # 로그 서버 URL (비어있으면 로컬 파일만 기록)
+    LOG_SERVER_URL: str = os.getenv("LOG_SERVER_URL", "")
+
     # CORS 허용 출처 (콤마 구분, * 는 전체 허용)
     CORS_ORIGINS: list = os.getenv("CORS_ORIGINS", "*").split(",")
 
